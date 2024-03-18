@@ -9,6 +9,7 @@ use egui_node_graph::*;
 /// store additional information that doesn't live in parameters. For this
 /// example, the node data stores the template (i.e. the "type") of the node.
 #[cfg_attr(feature = "persistence", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug)]
 pub struct MyNodeData {
     template: MyNodeTemplate,
 }
@@ -16,7 +17,7 @@ pub struct MyNodeData {
 /// `DataType`s are what defines the possible range of connections when
 /// attaching two ports together. The graph UI will make sure to not allow
 /// attaching incompatible datatypes.
-#[derive(PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "persistence", derive(serde::Serialize, serde::Deserialize))]
 pub enum MyDataType {
     Scalar,
@@ -68,7 +69,7 @@ impl MyValueType {
 /// NodeTemplate is a mechanism to define node templates. It's what the graph
 /// will display in the "new node" popup. The user code needs to tell the
 /// library how to convert a NodeTemplate into a Node.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 #[cfg_attr(feature = "persistence", derive(serde::Serialize, serde::Deserialize))]
 pub enum MyNodeTemplate {
     MakeScalar,
@@ -159,6 +160,7 @@ impl NodeTemplateTrait for MyNodeTemplate {
     }
 
     fn user_data(&self, _user_state: &mut Self::UserState) -> Self::NodeData {
+        eprintln!(" -- user_data: {self:?}");
         MyNodeData { template: *self }
     }
 
@@ -168,6 +170,7 @@ impl NodeTemplateTrait for MyNodeTemplate {
         _user_state: &mut Self::UserState,
         node_id: NodeId,
     ) {
+        eprintln!(" -- build_node: {self:?}");
         // The nodes are created empty by default. This function needs to take
         // care of creating the desired inputs and outputs based on the template
 
@@ -258,15 +261,14 @@ impl NodeTemplateTrait for MyNodeTemplate {
     }
 }
 
-pub struct AllMyNodeTemplates;
-impl NodeTemplateIter for AllMyNodeTemplates {
-    type Item = MyNodeTemplate;
+pub struct RegisteredNodeTypes {
+  pub types: Vec<MyNodeTemplate>,
+}
 
-    fn all_kinds(&self) -> Vec<Self::Item> {
-        // This function must return a list of node kinds, which the node finder
-        // will use to display it to the user. Crates like strum can reduce the
-        // boilerplate in enumerating all variants of an enum.
-        vec![
+impl Default for RegisteredNodeTypes {
+  fn default() -> Self {
+    Self {
+      types: vec![
             MyNodeTemplate::MakeScalar,
             MyNodeTemplate::MakeVector,
             MyNodeTemplate::AddScalar,
@@ -274,7 +276,16 @@ impl NodeTemplateIter for AllMyNodeTemplates {
             MyNodeTemplate::AddVector,
             MyNodeTemplate::SubtractVector,
             MyNodeTemplate::VectorTimesScalar,
-        ]
+      ]
+    }
+  }
+}
+
+impl NodeTemplateIter for &RegisteredNodeTypes {
+    type Item = MyNodeTemplate;
+
+    fn all_kinds(&self) -> Vec<Self::Item> {
+        self.types.clone()
     }
 }
 
@@ -378,6 +389,8 @@ pub struct NodeGraphExample {
     // custom types by specifying it as its generic parameters.
     state: MyEditorState,
 
+    node_types: RegisteredNodeTypes,
+
     user_state: MyGraphState,
 }
 
@@ -395,6 +408,7 @@ impl NodeGraphExample {
             .unwrap_or_default();
         Self {
             state,
+            node_types: RegisteredNodeTypes::default(),
             user_state: MyGraphState::default(),
         }
     }
@@ -419,13 +433,14 @@ impl eframe::App for NodeGraphExample {
             .show(ctx, |ui| {
                 self.state.draw_graph_editor(
                     ui,
-                    AllMyNodeTemplates,
+                    &self.node_types,
                     &mut self.user_state,
                     Vec::default(),
                 )
             })
             .inner;
         for node_response in graph_response.node_responses {
+            //eprintln!(" -- node_response: {node_response:?}");
             // Here, we ignore all other graph events. But you may find
             // some use for them. For example, by playing a sound when a new
             // connection is created
