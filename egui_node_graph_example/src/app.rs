@@ -262,23 +262,23 @@ impl NodeTemplateTrait for MyNodeTemplate {
 }
 
 pub struct RegisteredNodeTypes {
-  pub types: Vec<MyNodeTemplate>,
+    pub types: Vec<MyNodeTemplate>,
 }
 
 impl Default for RegisteredNodeTypes {
-  fn default() -> Self {
-    Self {
-      types: vec![
-            MyNodeTemplate::MakeScalar,
-            MyNodeTemplate::MakeVector,
-            MyNodeTemplate::AddScalar,
-            MyNodeTemplate::SubtractScalar,
-            MyNodeTemplate::AddVector,
-            MyNodeTemplate::SubtractVector,
-            MyNodeTemplate::VectorTimesScalar,
-      ]
+    fn default() -> Self {
+        Self {
+            types: vec![
+                MyNodeTemplate::MakeScalar,
+                MyNodeTemplate::MakeVector,
+                MyNodeTemplate::AddScalar,
+                MyNodeTemplate::SubtractScalar,
+                MyNodeTemplate::AddVector,
+                MyNodeTemplate::SubtractVector,
+                MyNodeTemplate::VectorTimesScalar,
+            ],
+        }
     }
-  }
 }
 
 impl NodeTemplateIter for &RegisteredNodeTypes {
@@ -427,6 +427,7 @@ impl eframe::App for NodeGraphExample {
         egui::TopBottomPanel::top("top").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
                 egui::widgets::global_dark_light_mode_switch(ui);
+                ui.label("Right click to add a node");
             });
         });
         let graph_response = egui::CentralPanel::default()
